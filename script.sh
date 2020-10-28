@@ -2,10 +2,9 @@
 sed -i 'Draft:d' coords.csv
 sed -i 'ERROR:d' coords.csv
 
-## Get coordinates into format to be read in SQL statement
-awk -F '|' -v OFS='|' '{$3="ST_GeomFromText('\''POINT("$3")'\'',4326)"; print $1,$2,$3}' coords.csv >> formatted_coords.csv
-## Get rid of empty coordinates
-sed -i '/()/d' coords2.sql
-## Build SQL statement
-awk -F '|' '{printf "(%s, \$\$%s\$\$, %s, \x27wikipedia\x27),\n", $1, $2, $3}' formatted_coords.csv >> coords.sql
+## Format CSV
+csvformat -d"," -U2 -S < 2coords.csv > formatted.csv
+awk -vFPAT='([^,]*)|("[^"]+")' -v OFS=',' '{gsub(/"/, "", $3); gsub(/"/, "", $4); $3="SRID=4326; POINT("$3" "$4")"; print $2,$3,"\"wikipedia\"",$5}' < formatted.csv > geo.csv
 
+# Run the following in your postgres db
+# COPY points_of_interest (name, coordinates, source, description) from 'FILEPATH_TO_CSV' WITH (DELIMITER ',', FORMAT csv);
